@@ -10,6 +10,7 @@ import { NewAppointmentPage } from './pages/booking/NewAppointmentPage'
 import { AvailabilityPage } from './pages/booking/AvailabilityPage'
 import { ConfirmPage } from './pages/booking/ConfirmPage'
 import { SuccessPage } from './pages/booking/SuccessPage'
+import { BookingGuard } from './components/BookingGuard'
 
 // Professional pages (stubs for now)
 import { LoginPage } from './pages/professional/LoginPage'
@@ -26,10 +27,10 @@ export default function App() {
 
             {/* Booking flow */}
             <Route path="/booking" element={<IdentifyPage />} />
-            <Route path="/booking/appointments" element={<MyAppointmentsPage />} />
-            <Route path="/booking/new" element={<NewAppointmentPage />} />
-            <Route path="/booking/availability" element={<AvailabilityPage />} />
-            <Route path="/booking/confirm" element={<ConfirmPage />} />
+            <Route path="/booking/appointments" element={<BookingGuard><MyAppointmentsPage /></BookingGuard>} />
+            <Route path="/booking/new" element={<BookingGuard><NewAppointmentPage /></BookingGuard>} />
+            <Route path="/booking/availability" element={<BookingGuard><AvailabilityPage /></BookingGuard>} />
+            <Route path="/booking/confirm" element={<BookingGuard><ConfirmPage /></BookingGuard>} />
             <Route path="/booking/success/:appointmentNumber" element={<SuccessPage />} />
 
             {/* Professional area */}
