@@ -1,42 +1,58 @@
-import axios from 'axios'
+import { createContext, useContext, useState, ReactNode } from 'react'
+import type { ProfessionalProfile } from '../types'
 
-const BASE_URL = 'http://localhost:8000/api'
+interface AuthContextValue {
+  professional: ProfessionalProfile | null
+  token: string | null
+  login: (token: string, professional: ProfessionalProfile) => void
+  logout: () => void
+  isAuthenticated: boolean
+}
 
-// Public API — no authentication
-export const bookingApi = axios.create({
-  baseURL: `${BASE_URL}/booking`,
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  },
-})
+const AuthContext = createContext<AuthContextValue | null>(null)
 
-// Professional API — token injected per request
-export const professionalApi = axios.create({
-  baseURL: `${BASE_URL}/professional`,
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  },
-})
-
-// Inject token from localStorage on every professional request
-professionalApi.interceptors.request.use((config) => {
-  const token = localStorage.getItem('professional_token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
-
-// Redirect to login on 401
-professionalApi.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('professional_token')
-      window.location.href = '/professional/login'
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [token, setToken] = useState<string | null>(
+    () => localStorage.getItem('professional_token')
+  )
+  const [professional, setProfessional] = useState<ProfessionalProfile | null>(
+    () => {
+      const stored = localStorage.getItem('professional_data')
+      return stored ? JSON.parse(stored) : null
     }
-    return Promise.reject(error)
+  )
+
+  const login = (newToken: string, professionalData: ProfessionalProfile) => {
+    localStorage.setItem('professional_token', newToken)
+    localStorage.setItem('professional_data', JSON.stringify(professionalData))
+    setToken(newToken)
+    setProfessional(professionalData)
   }
-)
+
+  const logout = () => {
+    localStorage.removeItem('professional_token')
+    localStorage.removeItem('professional_data')
+    setToken(null)
+    setProfessional(null)
+  }
+
+  return (
+    <AuthContext.Provider value={{
+      professional,
+      token,
+      login,
+      logout,
+      isAuthenticated: !!token,
+    }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext)
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider')
+  }
+  return context
+}
