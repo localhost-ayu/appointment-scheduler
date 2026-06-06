@@ -1,10 +1,10 @@
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useAuth } from '../../contexts/AuthContext'
-import { professionalApi } from '../../services/api'
+import { useSearchParams } from 'react-router-dom'
 import { useDashboard } from '../../hooks/useDashboard'
 import { useProfessionalAppointments } from '../../hooks/useProfessionalAppointments'
-import { MetricCard } from '../../components/professional/MetricCard'
+import { DashboardHeader } from '../../components/professional/DashboardHeader'
+import { MetricsGrid } from '../../components/professional/MetricsGrid'
 import { AppointmentTable } from '../../components/professional/AppointmentTable'
+import { Card, CardHeader, CardTitle } from '../../components/ui'
 
 const FILTERS = ['day', 'week', 'month', 'year'] as const
 type Filter = typeof FILTERS[number]
@@ -21,8 +21,6 @@ function todayString() {
 }
 
 export function DashboardPage() {
-  const { professional, logout } = useAuth()
-  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const filter = (searchParams.get('filter') ?? 'day') as Filter
@@ -32,130 +30,118 @@ export function DashboardPage() {
   const { metrics, loading: metricsLoading } = useDashboard(filter, date)
   const { appointments, loading: aptsLoading, refetch } = useProfessionalAppointments(filter, date, status)
 
-  const setFilter = (f: Filter) => {
-    setSearchParams({ filter: f, date: todayString(), status })
-  }
-
-  const setStatus = (s: string) => {
-    setSearchParams({ filter, date, status: s })
-  }
-
-  const handleLogout = async () => {
-    try {
-      await professionalApi.post('/logout')
-    } catch {
-      // proceed regardless
-    } finally {
-      logout()
-      navigate('/professional/login')
-    }
-  }
+  const setFilter = (f: Filter) => setSearchParams({ filter: f, date: todayString(), status })
+  const setStatus = (s: string) => setSearchParams({ filter, date, status: s })
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--color-bg-base)' }}>
+      <DashboardHeader />
 
-      {/* Header */}
-      <header className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-gray-900">Dashboard</h1>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-500">{professional?.name}</span>
-          <button
-            onClick={handleLogout}
-            className="text-sm text-red-500 hover:text-red-700 transition"
-          >
-            Sign out
-          </button>
-        </div>
-      </header>
+      <div style={{ maxWidth: '1152px', margin: '0 auto', padding: '32px' }}>
+        <div className="flex flex-col gap-8">
 
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-
-        {/* Filter tabs */}
-        <div className="flex items-center gap-1 bg-white border border-gray-100 rounded-xl p-1 w-fit">
-          {FILTERS.map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition ${
-                filter === f
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-500 hover:text-gray-900'
-              }`}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
-
-        {/* Metrics */}
-        {metricsLoading ? (
-          <div className="text-sm text-gray-400">Loading metrics...</div>
-        ) : metrics ? (
-          <div className="space-y-4">
+          {/* Page title + filter tabs */}
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">
-                Today
+              <h1 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--color-text-primary)', margin: '0 0 2px' }}>
+                Dashboard
+              </h1>
+              <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', margin: 0 }}>
+                {new Date().toLocaleDateString('en-GB', {
+                  weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
+                })}
               </p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <MetricCard label="Total" value={metrics.today.total} accent="gray" />
-                <MetricCard label="Pending" value={metrics.today.pending} accent="yellow" />
-                <MetricCard label="Completed" value={metrics.today.completed} accent="green" />
-                <MetricCard
-                  label="Revenue"
-                  value={`R$ ${metrics.today.revenue.toFixed(2)}`}
-                  accent="blue"
-                />
-              </div>
             </div>
 
-            {filter !== 'day' && (
-              <div>
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3 capitalize">
-                  This {filter}
-                </p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <MetricCard label="Total" value={metrics.total} accent="gray" />
-                  <MetricCard label="Pending" value={metrics.pending} accent="yellow" />
-                  <MetricCard label="Completed" value={metrics.completed} accent="green" />
-                  <MetricCard
-                    label="Revenue"
-                    value={`R$ ${metrics.revenue.toFixed(2)}`}
-                    accent="blue"
-                    sublabel="completed only"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        ) : null}
-
-        {/* Appointment table */}
-        <div className="bg-white rounded-2xl border border-gray-100">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-900">Appointments</h2>
-            <div className="flex items-center gap-1 bg-gray-50 rounded-lg p-1">
-              {STATUS_OPTIONS.map((opt) => (
+            {/* Filter tabs */}
+            <div style={{
+              display: 'flex',
+              gap: '2px',
+              backgroundColor: 'var(--color-bg-subtle)',
+              border: '1px solid var(--color-border-default)',
+              borderRadius: 'var(--radius-md)',
+              padding: '3px',
+            }}>
+              {FILTERS.map((f) => (
                 <button
-                  key={opt.value}
-                  onClick={() => setStatus(opt.value)}
-                  className={`px-3 py-1 rounded-md text-xs font-medium transition ${
-                    status === opt.value
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  style={{
+                    padding: '5px 14px',
+                    borderRadius: 'calc(var(--radius-md) - 2px)',
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    fontFamily: 'inherit',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textTransform: 'capitalize',
+                    backgroundColor: filter === f ? 'var(--color-bg-surface)' : 'transparent',
+                    color: filter === f ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+                    boxShadow: filter === f ? 'var(--shadow-raised)' : 'none',
+                    transition: 'all 0.15s ease',
+                  }}
                 >
-                  {opt.label}
+                  {f}
                 </button>
               ))}
             </div>
           </div>
-          <AppointmentTable
-            appointments={appointments}
-            loading={aptsLoading}
-            onRefetch={refetch}
-          />
-        </div>
 
+          {/* Metrics */}
+          {metricsLoading ? (
+            <div style={{ fontSize: '13px', color: 'var(--color-text-tertiary)' }}>
+              Loading metrics...
+            </div>
+          ) : metrics ? (
+            <MetricsGrid metrics={metrics} filter={filter} />
+          ) : null}
+
+          {/* Appointments */}
+          <Card padding="none">
+            <CardHeader>
+              <CardTitle>Appointments</CardTitle>
+
+              {/* Status filter */}
+              <div style={{
+                display: 'flex',
+                gap: '2px',
+                backgroundColor: 'var(--color-bg-subtle)',
+                border: '1px solid var(--color-border-default)',
+                borderRadius: 'var(--radius-md)',
+                padding: '3px',
+              }}>
+                {STATUS_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setStatus(opt.value)}
+                    style={{
+                      padding: '4px 12px',
+                      borderRadius: 'calc(var(--radius-md) - 2px)',
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      fontFamily: 'inherit',
+                      border: 'none',
+                      cursor: 'pointer',
+                      backgroundColor: status === opt.value ? 'var(--color-bg-surface)' : 'transparent',
+                      color: status === opt.value ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+                      boxShadow: status === opt.value ? 'var(--shadow-raised)' : 'none',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </CardHeader>
+
+            <AppointmentTable
+              appointments={appointments}
+              loading={aptsLoading}
+              onRefetch={refetch}
+            />
+          </Card>
+
+        </div>
       </div>
     </div>
   )

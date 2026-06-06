@@ -1,21 +1,19 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { bookingService } from '../../services/bookingService'
+import { Card, CardHeader, CardTitle, Button } from '../../components/ui'
+import { ThemeToggle } from '../../components/ThemeToggle'
 import type { Appointment } from '../../types'
 
 function generateICS(appointment: Appointment): string {
-  const start = new Date(appointment.starts_at)
-  const end = new Date(appointment.ends_at)
-
-  const fmt = (d: Date) =>
-    d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
-
+  const fmt = (iso: string) =>
+    iso.replace('T', '').replace(/[-:]/g, '').substring(0, 15)
   return [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'BEGIN:VEVENT',
-    `DTSTART:${fmt(start)}`,
-    `DTEND:${fmt(end)}`,
+    `DTSTART:${fmt(appointment.starts_at)}`,
+    `DTEND:${fmt(appointment.ends_at)}`,
     `SUMMARY:${appointment.service?.name} with ${appointment.professional?.name}`,
     `DESCRIPTION:Appointment ${appointment.appointment_number}`,
     'END:VEVENT',
@@ -39,8 +37,7 @@ export function SuccessPage() {
 
   const handleDownloadICS = () => {
     if (!appointment) return
-    const ics = generateICS(appointment)
-    const blob = new Blob([ics], { type: 'text/calendar' })
+    const blob = new Blob([generateICS(appointment)], { type: 'text/calendar' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -50,14 +47,22 @@ export function SuccessPage() {
   }
 
   const handleGoogleCalendar = () => {
-    if (!appointment) return
-    const start = new Date(appointment.starts_at)
-    const end = new Date(appointment.ends_at)
-    const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
-    const title = encodeURIComponent(`${appointment.service?.name} with ${appointment.professional?.name}`)
-    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(start)}/${fmt(end)}`
-    window.open(url, '_blank')
-  }
+
+    if (!appointment) return
+
+    const start = new Date(appointment.starts_at)
+
+    const end = new Date(appointment.ends_at)
+
+    const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+
+    const title = encodeURIComponent(`${appointment.service?.name} with ${appointment.professional?.name}`)
+
+    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(start)}/${fmt(end)}`
+
+    window.open(url, '_blank')
+
+  }
 
   const formatDateTime = (iso: string) =>
     new Date(iso).toLocaleDateString('en-GB', {
@@ -68,68 +73,120 @@ export function SuccessPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-400 text-sm">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: 'var(--color-bg-base)' }}>
+        <p style={{ fontSize: '14px', color: 'var(--color-text-tertiary)' }}>Loading...</p>
       </div>
     )
   }
 
   if (!appointment) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-400 text-sm">Appointment not found.</p>
+      <div className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: 'var(--color-bg-base)' }}>
+        <p style={{ fontSize: '14px', color: 'var(--color-text-tertiary)' }}>Appointment not found.</p>
       </div>
     )
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
+  const rows = [
+    { label: 'Professional', value: appointment.professional?.name },
+    { label: 'Service', value: appointment.service?.name },
+    { label: 'Date & Time', value: formatDateTime(appointment.starts_at) },
+    { label: 'Duration', value: `${appointment.duration} min` },
+    { label: 'Price', value: `R$ ${appointment.price.toFixed(2)}` },
+  ]
 
-        <div className="text-center mb-6">
-          <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-7 h-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+  return (
+    <div
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{ backgroundColor: 'var(--color-bg-base)' }}
+    >
+      <div style={{ position: 'fixed', top: '16px', right: '16px', zIndex: 50 }}>
+        <ThemeToggle />
+      </div>
+
+      <div className="w-full max-w-sm flex flex-col gap-4">
+
+        {/* Success indicator */}
+        <div style={{ textAlign: 'center', padding: '8px 0' }}>
+          <div style={{
+            width: '52px',
+            height: '52px',
+            borderRadius: 'var(--radius-full)',
+            backgroundColor: 'var(--color-success-bg)',
+            border: '1px solid var(--color-success-border)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 12px',
+          }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+              stroke="var(--color-success-text)" strokeWidth="2.5"
+              strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 13l4 4L19 7"/>
             </svg>
           </div>
-          <h1 className="text-xl font-semibold text-gray-900">Appointment confirmed</h1>
-          <p className="font-mono text-blue-600 font-medium mt-1">{appointment.appointment_number}</p>
+          <h1 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--color-text-primary)', margin: '0 0 6px' }}>
+            Appointment confirmed
+          </h1>
+          <div style={{
+            display: 'inline-block',
+            padding: '3px 12px',
+            borderRadius: 'var(--radius-full)',
+            backgroundColor: 'var(--color-bg-subtle)',
+            border: '1px solid var(--color-border-default)',
+          }}>
+            <span style={{
+              fontSize: '13px',
+              fontFamily: 'var(--font-mono)',
+              color: 'var(--color-text-secondary)',
+              fontWeight: 500,
+            }}>
+              {appointment.appointment_number}
+            </span>
+          </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4 mb-6">
-          {[
-            { label: 'Professional', value: appointment.professional?.name },
-            { label: 'Service', value: appointment.service?.name },
-            { label: 'Date & Time', value: formatDateTime(appointment.starts_at) },
-            { label: 'Duration', value: `${appointment.duration} min` },
-            { label: 'Price', value: `R$ ${appointment.price.toFixed(2)}` },
-          ].map(({ label, value }) => (
-            <div key={label} className="flex justify-between text-sm">
-              <span className="text-gray-500">{label}</span>
-              <span className="font-medium text-gray-900">{value}</span>
-            </div>
-          ))}
-        </div>
+        {/* Details */}
+        <Card padding="none">
+          <CardHeader>
+            <CardTitle>Details</CardTitle>
+          </CardHeader>
+          <div>
+            {rows.map(({ label, value }, i) => (
+              <div
+                key={label}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '12px 24px',
+                  borderBottom: i < rows.length - 1 ? '1px solid var(--color-border-default)' : 'none',
+                }}
+              >
+                <span style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}>
+                  {label}
+                </span>
+                <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-text-primary)' }}>
+                  {value}
+                </span>
+              </div>
+            ))}
+          </div>
+        </Card>
 
-        <div className="space-y-3">
-          <button
-            onClick={handleGoogleCalendar}
-            className="w-full bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-medium py-2.5 rounded-xl text-sm transition"
-          >
+        {/* Actions */}
+        <div className="flex flex-col gap-2">
+          <Button fullWidth variant="secondary" onClick={handleGoogleCalendar}>
             Add to Google Calendar
-          </button>
-          <button
-            onClick={handleDownloadICS}
-            className="w-full bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-medium py-2.5 rounded-xl text-sm transition"
-          >
+          </Button>
+          <Button fullWidth variant="secondary" onClick={handleDownloadICS}>
             Download .ICS file
-          </button>
-          <button
-            onClick={() => navigate('/booking')}
-            className="w-full text-gray-400 hover:text-gray-600 text-sm py-2 transition"
-          >
+          </Button>
+          <Button fullWidth variant="ghost" onClick={() => navigate('/booking')}>
             Back to start
-          </button>
+          </Button>
         </div>
 
       </div>

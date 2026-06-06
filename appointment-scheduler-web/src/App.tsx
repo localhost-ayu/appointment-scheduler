@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { BookingProvider } from './contexts/BookingContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { ThemeProvider } from './contexts/ThemeContext'
 
 // Booking pages (stubs for now)
 import { IdentifyPage } from './pages/booking/IdentifyPage'
@@ -18,6 +19,7 @@ import { DashboardPage } from './pages/professional/DashboardPage'
 
 export default function App() {
   return (
+  <ThemeProvider>
     <BrowserRouter>
       <AuthProvider>
         <BookingProvider>
@@ -47,5 +49,6 @@ export default function App() {
         </BookingProvider>
       </AuthProvider>
     </BrowserRouter>
+  </ThemeProvider>
   )
 }

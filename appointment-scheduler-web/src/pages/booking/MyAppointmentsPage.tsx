@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useBooking } from '../../contexts/BookingContext'
 import { bookingService } from '../../services/bookingService'
+import { Card, Button, EmptyState } from '../../components/ui'
 import { StatusBadge } from '../../components/professional/StatusBadge'
+import { ThemeToggle } from '../../components/ThemeToggle'
 import type { Appointment } from '../../types'
 
 export function MyAppointmentsPage() {
@@ -28,7 +30,9 @@ export function MyAppointmentsPage() {
       await bookingService.cancelAppointment(appointmentNumber, customer.phone)
       setAppointments((prev) =>
         prev.map((a) =>
-          a.appointment_number === appointmentNumber ? { ...a, status: 'cancelled' } : a
+          a.appointment_number === appointmentNumber
+            ? { ...a, status: 'cancelled' }
+            : a
         )
       )
     } catch {
@@ -38,71 +42,105 @@ export function MyAppointmentsPage() {
     }
   }
 
-  const formatDateTime = (iso: string) => {
-    const d = new Date(iso)
-    return d.toLocaleDateString('en-GB', {
-      weekday: 'short', day: '2-digit', month: 'short', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
+  const formatDateTime = (iso: string) =>
+    new Date(iso).toLocaleDateString('en-GB', {
+      weekday: 'short', day: '2-digit', month: 'short',
+      year: 'numeric', hour: '2-digit', minute: '2-digit',
       timeZone: 'UTC',
     })
-  }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div
+      className="min-h-screen p-4 md:p-8"
+      style={{ backgroundColor: 'var(--color-bg-base)' }}
+    >
+      <div style={{ position: 'fixed', top: '16px', right: '16px', zIndex: 50 }}>
+        <ThemeToggle />
+      </div>
+
       <div className="max-w-2xl mx-auto">
 
+        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">My Appointments</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Welcome back, {customer?.name}</p>
+            <h1 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--color-text-primary)', margin: '0 0 2px' }}>
+              My Appointments
+            </h1>
+            <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', margin: 0 }}>
+              Welcome back, {customer?.name}
+            </p>
           </div>
-          <button
-            onClick={() => navigate('/booking/new')}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-xl transition"
-          >
+          <Button variant="primary" size="sm" onClick={() => navigate('/booking/new')}>
             New appointment
-          </button>
+          </Button>
         </div>
 
+        {/* Content */}
         {loading ? (
-          <div className="text-center py-16 text-gray-400 text-sm">Loading...</div>
+          <Card>
+            <div style={{ padding: '48px', textAlign: 'center', color: 'var(--color-text-tertiary)', fontSize: '14px' }}>
+              Loading...
+            </div>
+          </Card>
         ) : appointments.length === 0 ? (
-          <div className="text-center py-16 text-gray-400 text-sm">
-            No appointments found.
-          </div>
+          <Card>
+            <EmptyState
+              title="No appointments yet"
+              description="Book your first appointment to get started."
+              action={{ label: 'Book now', onClick: () => navigate('/booking/new') }}
+            />
+          </Card>
         ) : (
-          <div className="space-y-3">
+          <div className="flex flex-col gap-3">
             {appointments.map((apt) => (
-              <div
-                key={apt.appointment_number}
-                className="bg-white rounded-2xl border border-gray-100 p-5"
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="font-medium text-gray-900">{apt.service?.name}</p>
-                    <p className="text-sm text-gray-500 mt-0.5">with {apt.professional?.name}</p>
-                    <p className="text-sm text-gray-500 mt-1">{formatDateTime(apt.starts_at)}</p>
+              <Card key={apt.appointment_number} padding="none">
+                <div style={{ padding: '16px 20px' }}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex flex-col gap-1">
+                      <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-primary)', margin: 0 }}>
+                        {apt.service?.name}
+                      </p>
+                      <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', margin: 0 }}>
+                        with {apt.professional?.name}
+                      </p>
+                      <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', margin: 0 }}>
+                        {formatDateTime(apt.starts_at)}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                      <StatusBadge status={apt.status} />
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', margin: 0 }}>
+                        R$ {apt.price.toFixed(2)}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <StatusBadge status={apt.status} />
-                    <p className="text-sm font-medium text-gray-700">R$ {apt.price.toFixed(2)}</p>
-                  </div>
-                </div>
 
-                {apt.status === 'pending' && (
-                  <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-50">
-                    <button
-                      onClick={() => handleCancel(apt.appointment_number)}
-                      disabled={cancellingId === apt.appointment_number}
-                      className="text-sm text-red-500 hover:text-red-700 font-medium transition disabled:opacity-40"
+                  {apt.status === 'pending' && (
+                    <div
+                      className="flex items-center gap-3 mt-3 pt-3"
+                      style={{ borderTop: '1px solid var(--color-border-default)' }}
                     >
-                      {cancellingId === apt.appointment_number ? 'Cancelling...' : 'Cancel'}
-                    </button>
-                  </div>
-                )}
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleCancel(apt.appointment_number)}
+                        loading={cancellingId === apt.appointment_number}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
 
-                <p className="text-xs text-gray-400 font-mono mt-3">{apt.appointment_number}</p>
-              </div>
+                  <p style={{
+                    fontSize: '11px',
+                    color: 'var(--color-text-tertiary)',
+                    fontFamily: 'var(--font-mono)',
+                    margin: '10px 0 0',
+                  }}>
+                    {apt.appointment_number}
+                  </p>
+                </div>
+              </Card>
             ))}
           </div>
         )}

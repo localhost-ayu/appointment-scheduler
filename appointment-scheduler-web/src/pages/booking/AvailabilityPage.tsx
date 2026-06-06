@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useBooking } from '../../contexts/BookingContext'
 import { bookingService } from '../../services/bookingService'
+import { Card, CardHeader, CardTitle, Button, EmptyState } from '../../components/ui'
+import { ThemeToggle } from '../../components/ThemeToggle'
 import type { Professional, Service } from '../../types'
 
 function toDateString(date: Date) {
@@ -29,7 +31,6 @@ export function AvailabilityPage() {
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  // Redirect if state is missing
   useEffect(() => {
     if (!professional || !service) {
       navigate('/booking/new', { replace: true })
@@ -58,46 +59,68 @@ export function AvailabilityPage() {
     })
   }
 
-  // Generate next 14 days
   const days = Array.from({ length: 14 }, (_, i) => addDays(new Date(), i))
-
-  const dayLabel = (date: Date) =>
-    date.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' })
 
   if (!professional || !service) return null
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <div
+      className="min-h-screen p-4 md:p-8"
+      style={{ backgroundColor: 'var(--color-bg-base)' }}
+    >
+      <div style={{ position: 'fixed', top: '16px', right: '16px', zIndex: 50 }}>
+        <ThemeToggle />
+      </div>
+
+      <div className="max-w-2xl mx-auto flex flex-col gap-6">
 
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Choose a time</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <h1 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--color-text-primary)', margin: '0 0 2px' }}>
+            Choose a time
+          </h1>
+          <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', margin: 0 }}>
             {service.name} with {professional.name} · {service.duration} min
           </p>
         </div>
 
-        {/* Date selector */}
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        {/* Date strip */}
+        <div
+          style={{
+            display: 'flex',
+            gap: '8px',
+            overflowX: 'auto',
+            paddingBottom: '4px',
+            WebkitOverflowScrolling: 'touch' as any,
+          }}
+        >
           {days.map((day) => {
             const isSelected = toDateString(day) === toDateString(selectedDate)
             return (
               <button
                 key={toDateString(day)}
                 onClick={() => setSelectedDate(day)}
-                className={`flex-shrink-0 flex flex-col items-center px-4 py-3 rounded-2xl border text-sm transition ${
-                  isSelected
-                    ? 'bg-blue-600 border-blue-600 text-white'
-                    : 'bg-white border-gray-100 text-gray-700 hover:border-gray-200'
-                }`}
+                style={{
+                  flexShrink: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  padding: '10px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  border: `1px solid ${isSelected ? 'var(--color-action-primary)' : 'var(--color-border-default)'}`,
+                  backgroundColor: isSelected ? 'var(--color-action-primary)' : 'var(--color-bg-surface)',
+                  color: isSelected ? '#FFFFFF' : 'var(--color-text-primary)',
+                  cursor: 'pointer',
+                  minWidth: '60px',
+                  transition: 'all 0.15s ease',
+                }}
               >
-                <span className="text-xs font-medium">
+                <span style={{ fontSize: '11px', fontWeight: 500, opacity: 0.8 }}>
                   {day.toLocaleDateString('en-GB', { weekday: 'short' })}
                 </span>
-                <span className="text-lg font-bold leading-none mt-1">
+                <span style={{ fontSize: '20px', fontWeight: 700, lineHeight: 1.2, margin: '2px 0' }}>
                   {day.getDate()}
                 </span>
-                <span className="text-xs mt-1">
+                <span style={{ fontSize: '11px', opacity: 0.8 }}>
                   {day.toLocaleDateString('en-GB', { month: 'short' })}
                 </span>
               </button>
@@ -106,41 +129,63 @@ export function AvailabilityPage() {
         </div>
 
         {/* Time slots */}
-        <div>
-          <p className="text-sm font-medium text-gray-700 mb-3">
-            Available times for {dayLabel(selectedDate)}
-          </p>
-
-          {loading ? (
-            <p className="text-sm text-gray-400">Loading slots...</p>
-          ) : slots.length === 0 ? (
-            <p className="text-sm text-gray-400">No available times for this date.</p>
-          ) : (
-            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-              {slots.map((slot) => (
-                <button
-                  key={slot}
-                  onClick={() => setSelectedSlot(slot)}
-                  className={`py-2.5 rounded-xl border text-sm font-medium transition ${
-                    selectedSlot === slot
-                      ? 'bg-blue-600 border-blue-600 text-white'
-                      : 'bg-white border-gray-100 text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  {slot}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <Card padding="none">
+          <CardHeader>
+            <CardTitle>
+              Available times —{' '}
+              {selectedDate.toLocaleDateString('en-GB', {
+                weekday: 'long', day: '2-digit', month: 'long',
+              })}
+            </CardTitle>
+          </CardHeader>
+          <div style={{ padding: '16px' }}>
+            {loading ? (
+              <p style={{ fontSize: '13px', color: 'var(--color-text-tertiary)', padding: '16px 0' }}>
+                Loading slots...
+              </p>
+            ) : slots.length === 0 ? (
+              <EmptyState
+                title="No available times"
+                description="Try selecting a different date."
+              />
+            ) : (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))',
+                gap: '8px',
+              }}>
+                {slots.map((slot) => {
+                  const isSelected = selectedSlot === slot
+                  return (
+                    <button
+                      key={slot}
+                      onClick={() => setSelectedSlot(slot)}
+                      style={{
+                        padding: '10px 8px',
+                        borderRadius: 'var(--radius-md)',
+                        border: `1px solid ${isSelected ? 'var(--color-action-primary)' : 'var(--color-border-default)'}`,
+                        backgroundColor: isSelected ? 'var(--color-action-primary)' : 'var(--color-bg-surface)',
+                        color: isSelected ? '#FFFFFF' : 'var(--color-text-primary)',
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        fontFamily: 'var(--font-mono)',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {slot}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </Card>
 
         {selectedSlot && (
-          <button
-            onClick={handleContinue}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl transition"
-          >
+          <Button fullWidth onClick={handleContinue}>
             Continue to confirmation
-          </button>
+          </Button>
         )}
 
       </div>
