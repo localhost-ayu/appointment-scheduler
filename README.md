@@ -377,7 +377,7 @@ Theme preference is persisted in local storage and applied globally through CSS 
 
 Developed as a portfolio project showcasing full-stack development with Laravel and React.
 
-**Your Name**
+**Nathã Grazzioli Botelho**
 
 * GitHub: https://github.com/localhost-ayu
 * LinkedIn: https://www.linkedin.com/in/nathã-grazzioli-botelho/
